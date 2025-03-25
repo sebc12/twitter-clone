@@ -28,4 +28,12 @@ export const fetchWithAuth = async (
 // Fetch posts using the general fetchWithAuth function
 export const fetchPosts = async () => {
   return fetchWithAuth("http://127.0.0.1:8000/api/posts");
+
 };
+
+export const createPost = async (data: { content: string }) => {
+  return fetchWithAuth("http://127.0.0.1:8000/api/posts", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
