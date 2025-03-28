@@ -37,3 +37,14 @@ export const createPost = async (data: { content: string }) => {
     body: JSON.stringify(data),
   });
 }
+
+export const likePost = async (id: number, type: "post" | "comment") => {
+  return fetchWithAuth("http://127.0.0.1:8000/api/likes", {
+    method: "POST",
+    body: JSON.stringify({
+      likeable_id: id,
+      likeable_type: type,
+    }),
+  });
+};
+

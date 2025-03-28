@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchPosts } from "@/lib/api";
+import { fetchPosts, likePost } from "@/lib/api";
+import { format } from "date-fns";
 
 type Post = {
   id: number;
@@ -34,6 +35,16 @@ export default function Posts() {
     loadPosts();
   }, []);
 
+  const handleLike = async (id: number, type: "post" | "comment") => {
+    console.log(`Liked ${type} with ID: ${id}`);
+    try {
+      // Call the dynamic likePost function with the appropriate ID and type
+      await likePost(id, type);
+    } catch (err) {
+      setError(`Failed to like ${type}`);
+    }
+  };
+
   return (
     <div>
       {error && <p className="text-red-500">{error}</p>}
@@ -43,32 +54,40 @@ export default function Posts() {
             <div className="flex space-x-2">
               <p className="font-bold">{post.user.name}</p>
               <p>{post.user.email}</p>
-              <p>{post.created_at}</p>
+              <p>
+                {/* Formatér datoen med date-fns */}
+                {format(new Date(post.created_at), "dd-MM-yyyy")}
+              </p>
             </div>
 
             <p>{post.content}</p>
             <p className="text-end">
-              💬 {post.comments.length} | ❤️ {post.likes.length}
+              💬 {post.comments.length} |{" "}
+              <button onClick={() => handleLike(post.id, "post")}>
+                ❤️ {post.likes.length}
+              </button>
             </p>
 
-            {/* Vis kommentarer */}
+            {/* Display comments */}
             <div className="mt-2">
-              <h3 className="font-semibold">Comments:</h3>
+              <h3 className="font-semibold">Comments</h3>
               <ul>
                 {post.comments.length > 0 ? (
                   post.comments.map((comment) => (
                     <li key={comment.id} className="border-t p-1">
-                      {/* Vis kommentators navn her */}
                       <div className="flex space-x-2">
                         <p className="font-bold">{comment.user.name}</p>
-                        <p className="">{comment.created_at}</p>
+                        <p>
+                          {/* Formatér datoen med date-fns */}
+                          {format(new Date(comment.created_at), "dd-MM-yyyy")}
+                        </p>
                       </div>
 
                       <p>{comment.content}</p>
                     </li>
                   ))
                 ) : (
-                  <p>No comments yet.</p>
+                  <p>No comments</p>
                 )}
               </ul>
             </div>

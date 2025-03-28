@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { login } from "../../lib/auth";
+import { register } from "../../lib/auth";
 
-export default function Login() {
+export default function Register() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | undefined>(undefined);
@@ -11,10 +12,10 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const result = await login(email, password);
+    const result = await register(name, email, password);
 
     if (result.success) {
-      window.location.href = "/dashboard";
+      window.location.href = "/login";
     } else {
       setError(result.error);
     }
@@ -24,6 +25,17 @@ export default function Login() {
     <div className="py-16">
       <form onSubmit={handleLogin} className="border p-4 m-auto w-1/3">
         <h1 className="text-xl font-bold text-center">Login</h1>
+        <div>
+          <label>Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="border p-2 w-full mb-4"
+            placeholder="Enter your name"
+          />
+        </div>
         <div>
           <label>Email</label>
           <input
