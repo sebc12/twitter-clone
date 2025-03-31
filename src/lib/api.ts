@@ -1,5 +1,6 @@
 import { getToken } from "./auth";
 
+
 export const fetchWithAuth = async (
   url: string,
   options: RequestInit = {}
@@ -54,5 +55,4 @@ export const createComment = async (id: number, data: { content: string }) => {
     body: JSON.stringify(data),
   });
 };
-
 

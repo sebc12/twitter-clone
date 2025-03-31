@@ -49,7 +49,27 @@ export const register = async (name: string, email: string, password: string) =>
   }
 };
 
-// Funktion til at logge ud
-export const logout = () => {
-  Cookies.remove("token");
+export const logout = async () => {
+  const token = getToken(); // Hent token fra cookies
+
+  if (!token) return; // Hvis der ikke er noget token, gør ingenting
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/logout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      Cookies.remove("token"); // Fjern token fra cookies
+      window.location.href = "/login"; // Redirect til login-siden
+    } else {
+      console.error("Logout failed:", await response.json());
+    }
+  } catch (error) {
+    console.error("Logout request failed:", error);
+  }
 };
