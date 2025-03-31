@@ -1,7 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
-import { fetchPosts, likePost } from "@/lib/api";
+import useSWR from "swr";
 import { format } from "date-fns";
+import { fetchPosts, likePost } from "@/lib/api";
+import { useState } from "react";
+
+// API fetcher
+const fetcher = async () => {
+  return await fetchPosts(); // Henter posts fra API
+};
 
 type Post = {
   id: number;
@@ -13,51 +19,53 @@ type Post = {
     content: string;
     created_at: string;
     user: { name: string };
-  }[]; // Kommentars struktur
+    likes: any[];
+  }[];
   likes: any[];
 };
 
 export default function Posts() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        const data = await fetchPosts(); // Fjernet token som argument
-        setPosts(data);
-        console.log(data);
-      } catch (err) {
-        setError("Failed to load posts");
-      }
-    };
-
-    loadPosts();
-  }, []);
+  const { data: posts, error, mutate } = useSWR<Post[]>("/posts", fetcher);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleLike = async (id: number, type: "post" | "comment") => {
     console.log(`Liked ${type} with ID: ${id}`);
-    try {
-      // Call the dynamic likePost function with the appropriate ID and type
-      await likePost(id, type);
-    } catch (err) {
-      setError(`Failed to like ${type}`);
-    }
+
+    // Optimistisk UI - Opdaterer UI med det samme
+    mutate(
+      async (currentData) => {
+        if (!currentData) return currentData; // Hvis data ikke er hentet endnu
+
+        // Opdater lokalt (optimistisk)
+        const updatedData = currentData.map((post) => {
+          if (type === "post" && post.id === id) {
+            return { ...post, likes: [...post.likes, { id: Date.now() }] }; // Simuler nyt like
+          }
+          return post;
+        });
+
+        // Udfør det rigtige API-kald
+        await likePost(id, type);
+
+        // Hent opdaterede data fra serveren
+        return await fetchPosts();
+      },
+      { revalidate: true }
+    );
   };
+
+  if (error) return <p className="text-red-500">Failed to load posts</p>;
 
   return (
     <div>
-      {error && <p className="text-red-500">{error}</p>}
+      {errorMessage && <p className="text-red-500">{errorMessage}</p>}
       <ul className="m-auto w-1/2 border-x">
-        {posts.map((post) => (
+        {posts?.map((post) => (
           <li key={post.id} className="border-y p-2">
             <div className="flex space-x-2">
               <p className="font-bold">{post.user.name}</p>
               <p>{post.user.email}</p>
-              <p>
-                {/* Formatér datoen med date-fns */}
-                {format(new Date(post.created_at), "dd-MM-yyyy")}
-              </p>
+              <p>{format(new Date(post.created_at), "dd-MM-yyyy")}</p>
             </div>
 
             <p>{post.content}</p>
@@ -78,11 +86,9 @@ export default function Posts() {
                       <div className="flex space-x-2">
                         <p className="font-bold">{comment.user.name}</p>
                         <p>
-                          {/* Formatér datoen med date-fns */}
                           {format(new Date(comment.created_at), "dd-MM-yyyy")}
                         </p>
                       </div>
-
                       <p>{comment.content}</p>
                     </li>
                   ))
