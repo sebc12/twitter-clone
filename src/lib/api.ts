@@ -48,3 +48,11 @@ export const likePost = async (id: number, type: "post" | "comment") => {
   });
 };
 
+export const createComment = async (id: number, data: { content: string }) => {
+  return fetchWithAuth(`http://127.0.0.1:8000/api/posts/${id}/comments`, { 
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
+
+

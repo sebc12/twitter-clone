@@ -3,55 +3,30 @@ import useSWR from "swr";
 import { format } from "date-fns";
 import { fetchPosts, likePost } from "@/lib/api";
 import { useState } from "react";
+import { Post } from "../../types/posts"; // Importer Post type
+import CreateComment from "./CreateComment";
 
 // API fetcher
 const fetcher = async () => {
   return await fetchPosts(); // Henter posts fra API
 };
 
-type Post = {
-  id: number;
-  content: string;
-  created_at: string;
-  user: { name: string; email: string };
-  comments: {
-    id: number;
-    content: string;
-    created_at: string;
-    user: { name: string };
-    likes: any[];
-  }[];
-  likes: any[];
-};
-
 export default function Posts() {
   const { data: posts, error, mutate } = useSWR<Post[]>("/posts", fetcher);
   const [errorMessage, setErrorMessage] = useState("");
 
+  console.log(posts);
+
   const handleLike = async (id: number, type: "post" | "comment") => {
-    console.log(`Liked ${type} with ID: ${id}`);
+    try {
+      console.log(`Liked ${type} with ID: ${id}`);
 
-    // Optimistisk UI - Opdaterer UI med det samme
-    mutate(
-      async (currentData) => {
-        if (!currentData) return currentData; // Hvis data ikke er hentet endnu
-
-        // Opdater lokalt (optimistisk)
-        const updatedData = currentData.map((post) => {
-          if (type === "post" && post.id === id) {
-            return { ...post, likes: [...post.likes, { id: Date.now() }] }; // Simuler nyt like
-          }
-          return post;
-        });
-
-        // Udfør det rigtige API-kald
-        await likePost(id, type);
-
-        // Hent opdaterede data fra serveren
-        return await fetchPosts();
-      },
-      { revalidate: true }
-    );
+      await likePost(id, type); // Send like til API
+      mutate(); // Hent de opdaterede data fra serveren
+    } catch (error) {
+      console.error("Fejl ved like:", error);
+      setErrorMessage("Kunne ikke like. Prøv igen senere.");
+    }
   };
 
   if (error) return <p className="text-red-500">Failed to load posts</p>;
@@ -59,9 +34,9 @@ export default function Posts() {
   return (
     <div>
       {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-      <ul className="m-auto w-1/2 border-x">
+      <ul className="m-auto w-1/2 space-y-4">
         {posts?.map((post) => (
-          <li key={post.id} className="border-y p-2">
+          <li key={post.id} className="border p-2">
             <div className="flex space-x-2">
               <p className="font-bold">{post.user.name}</p>
               <p>{post.user.email}</p>
@@ -75,6 +50,8 @@ export default function Posts() {
                 ❤️ {post.likes.length}
               </button>
             </p>
+            {/* Display comments form */}
+            <CreateComment postId={post.id} />
 
             {/* Display comments */}
             <div className="mt-2">
@@ -90,6 +67,13 @@ export default function Posts() {
                         </p>
                       </div>
                       <p>{comment.content}</p>
+                      <p className="text-end">
+                        <button
+                          onClick={() => handleLike(comment.id, "comment")}
+                        >
+                          ❤️ {comment.likes?.length || 0}
+                        </button>
+                      </p>
                     </li>
                   ))
                 ) : (
